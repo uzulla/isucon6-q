@@ -50,7 +50,7 @@ sub update_regexp {
     my $keywords = $self->dbh->select_all(qq[
         SELECT keyword FROM entry ORDER BY keyword_length DESC
     ]);
-    $self->{regexp} = join '|', map { quotemeta $_->{keyword} } @$keywords;
+    $self->redis->set('regexp', join '|', map { quotemeta $_->{keyword} } @$keywords);
 }
 
 filter 'set_name' => sub {
@@ -85,11 +85,8 @@ get '/initialize' => sub {
         DELETE FROM entry WHERE id > 7101
     ]);
 
-    my $keywords = $self->dbh->select_all(qq[
-        SELECT keyword FROM entry ORDER BY keyword_length DESC
-    ]);
-    $self->{regexp} = join '|', map { quotemeta $_->{keyword} } @$keywords;
-    print $self->{regexp} . "\n";
+    $self->update_regexp;
+    print $self->redis->get('regexp') . "\n";
 
     # my $origin = config('isutar_origin');
     # my $url = URI->new("$origin/initialize");
@@ -292,7 +289,7 @@ sub htmlify {
     return '' unless defined $content;
 
     my %kw2sha;
-    my $re = $self->{regexp};
+    my $re = $self->redis->get('regexp');
     $content =~ s{($re)}{
         my $kw = $1;
         $kw2sha{$kw} = "isuda_" . sha1_hex(encode_utf8($kw));
