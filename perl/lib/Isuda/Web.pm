@@ -173,8 +173,6 @@ post '/keyword' => [qw/set_name authenticate/] => sub {
     $self->update_regexp;
     $self->redis->incr('total_entries');
 
-    $self->redis->rpush('queue', encode_utf8($keyword));
-
     {
         my $entries = $self->dbh->select_all(qq[
             SELECT * FROM entry
