@@ -71,6 +71,7 @@ for my $entry (@$entries) {
     }
 }
 
+$redis->set('block', 'false');
 
 sub htmlify {
     my ($content) = @_;
