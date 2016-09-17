@@ -244,7 +244,7 @@ post '/login' => sub {
 
 get '/logout' => sub {
     my ($self, $c)  = @_;
-    $c->env->{'psgix.session'} = {};
+    $c->env->{'psgix.session'}->{user_id} = undef;
     $c->redirect('/');
 };
 
