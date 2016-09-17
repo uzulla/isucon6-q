@@ -94,8 +94,6 @@ get '/initialize' => sub {
         DELETE FROM entry WHERE id > 7101
     ]);
 
-    $self->redis->flushall();
-
     $self->update_regexp;
     print $self->redis->get('regexp') . "\n";
 
@@ -266,11 +264,17 @@ post '/keyword/:keyword' => [qw/set_name authenticate/] => sub {
 get '/stars' => sub {
     my ($self, $c) = @_;
 
-    my $keyword = $c->req->parameters->{keyword};
-    my $stars = $self->redis->lrange("star|$keyword", 0, -1);
+    my $stars = $self->dbh->select_all(q[
+        SELECT * FROM star WHERE keyword = ?
+    ], $c->req->parameters->{keyword});
+
+    my @num;
+    for my $foo (@$stars) {
+        push(@num, 1);
+    }
 
     $c->render_json({
-        stars => $stars,
+        stars => \@num,
     });
 };
 
@@ -278,14 +282,22 @@ post '/stars' => sub {
     my ($self, $c) = @_;
     my $keyword = $c->req->parameters->{keyword};
 
-    # TODO 存在確認してるだけなのでなんとかしたい
+    # my $origin = $ENV{ISUDA_ORIGIN} // 'http://localhost:5000';
+    # my $url = "$origin/keyword/" . uri_escape_utf8($keyword);
+    # my $res = Furl->new->get($url);
+    # unless ($res->is_success) {
+    #     $c->halt(404);
+    # }
     my $entry = $self->dbh->select_row(qq[
         SELECT * FROM entry
         WHERE keyword = ?
     ], $keyword);
     $c->halt(404) unless $entry;
 
-    $self->redis->lpush("star|$keyword", '1');
+    $self->dbh->query(q[
+        INSERT INTO star (keyword, user_name, created_at)
+        VALUES (?, ?, NOW())
+    ], $keyword, $c->req->parameters->{user});
 
     $c->render_json({
         result => 'ok',
