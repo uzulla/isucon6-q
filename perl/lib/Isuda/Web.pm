@@ -175,7 +175,7 @@ post '/keyword' => [qw/set_name authenticate/] => sub {
     my $pid = fork;
     if ($pid <= 0) {
         # 子プロセス
-        if ($self->redis->getset('block', 'true') == 'true') {
+        if ($self->redis->getset('block', 'true') eq 'true') {
             exit 0;
         }
         my $root_dir = $self->root_dir;
