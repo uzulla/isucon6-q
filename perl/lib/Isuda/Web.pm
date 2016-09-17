@@ -102,6 +102,11 @@ get '/initialize' => sub {
     # Furl->new->get($url);
     $self->dbh->query('TRUNCATE star');
 
+    my $total_entries = $self->dbh->select_one(q[
+        SELECT COUNT(*) FROM entry
+    ]);
+    $self->redis->set('total_entries', $total_entries);
+
     $c->render_json({
         result => 'ok',
     });
@@ -124,9 +129,8 @@ get '/' => [qw/set_name/] => sub {
         $entry->{stars} = $self->load_stars($entry->{keyword});
     }
 
-    my $total_entries = $self->dbh->select_one(q[
-        SELECT COUNT(*) FROM entry
-    ]);
+    my $total_entries = $self->redis->get('total_entries');
+
     my $last_page = ceil($total_entries / $PER_PAGE);
     my @pages = (max(1, $page-5)..min($last_page, $page+5));
 
@@ -157,6 +161,7 @@ post '/keyword' => [qw/set_name authenticate/] => sub {
         author_id = ?, keyword = ?, description = ?, updated_at = NOW(), keyword_length = ?
     ], ($user_id, $keyword, $description, length($keyword)) x 2);
     $self->update_regexp;
+    $self->redis->incr('total_entries');
 
     $c->redirect('/');
 };
@@ -252,6 +257,7 @@ post '/keyword/:keyword' => [qw/set_name authenticate/] => sub {
         WHERE keyword = ?
     ], $keyword);
     $self->update_regexp;
+    $self->redis->decr('total_entries');
     $c->redirect('/');
 };
 
