@@ -263,7 +263,7 @@ get '/stars' => sub {
     ], $c->req->parameters->{keyword});
 
     my @num;
-    for @$stars {
+    for my $foo (@$stars) {
         push(@num, 1);
     }
 
