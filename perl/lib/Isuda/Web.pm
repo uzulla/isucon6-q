@@ -75,9 +75,9 @@ get '/initialize' => sub {
     $self->dbh->query(q[
         DELETE FROM entry WHERE id > 7101
     ]);
-    my $origin = config('isutar_origin');
-    my $url = URI->new("$origin/initialize");
-    Furl->new->get($url);
+    # my $origin = config('isutar_origin');
+    # my $url = URI->new("$origin/initialize");
+    # Furl->new->get($url);
     $self->dbh->query('TRUNCATE star');
     $c->render_json({
         result => 'ok',
@@ -291,14 +291,12 @@ sub htmlify {
 
 sub load_stars {
     my ($self, $keyword) = @_;
-    my $origin = config('isutar_origin');
-    my $url = URI->new("$origin/stars");
-    $url->query_form(keyword => $keyword);
-    my $ua = Furl->new;
-    my $res = $ua->get($url);
-    my $data = decode_json $res->content;
 
-    $data->{stars};
+    my $stars = $self->dbh->select_all(q[
+        SELECT * FROM star WHERE keyword = ?
+    ], $keyword);
+
+    return $stars;
 }
 
 sub is_spam_contents {

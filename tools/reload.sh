@@ -8,7 +8,7 @@ sudo sysctl -p
 sudo systemctl daemon-reload
 
 # mysql
-sudo /etc/init.d/mysqld restart
+sudo /etc/init.d/mysql restart
 
 # nginx
 sudo /etc/init.d/nginx restart
@@ -17,8 +17,8 @@ sudo /etc/init.d/nginx restart
 
 # app
 (cd /home/isucon/webapp/perl && /home/isucon/.local/perl/bin/carton install)
-sudo systemctl restart isuda.per
-sudo systemctl restart isutar.per
+sudo systemctl restart isuda.perl
+sudo systemctl restart isutar.perl
 
 # echo "Reloaded!" | /opt/slackcat --channel 80percent --stream --plain
 
