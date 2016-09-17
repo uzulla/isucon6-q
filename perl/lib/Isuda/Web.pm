@@ -48,8 +48,7 @@ sub dbh {
 sub redis {
     my ($self) = @_;
     $self->{redis} //= Redis::Fast->new(
-        server => 'localhost:6379',
-        # sock => '/tmp/redis.sock',
+        sock => '/tmp/redis.sock',
         name => 'isucon',
     );
 }
