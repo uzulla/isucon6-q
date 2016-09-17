@@ -172,17 +172,16 @@ post '/keyword' => [qw/set_name authenticate/] => sub {
 
     my $uri_for = $c->req->uri_for;
 
-    my $pid = fork;
-    if ($pid <= 0) {
-        # 子プロセス
-        if ($self->redis->getset('block', 'true') eq 'true') {
+    if ($self->redis->getset('block', 'true') ne 'true') {
+        my $pid = fork;
+        if ($pid <= 0) {
+            # 子プロセス
+            my $root_dir = $self->root_dir;
+            my $perl = $ENV{__ISUCON_PERL} // '/home/isucon/.local/perl/bin/perl';
+            system("$perl $root_dir/scripts/htmlify.pl $uri_for " . encode_utf8($keyword));
+            $self->redis->set('block', 'false');
             exit 0;
         }
-        my $root_dir = $self->root_dir;
-        my $perl = $ENV{__ISUCON_PERL} // '/home/isucon/.local/perl/bin/perl';
-        system("$perl $root_dir/scripts/htmlify.pl $uri_for " . encode_utf8($keyword));
-        $self->redis->set('block', 'false');
-        exit 0;
     }
 
     # {
