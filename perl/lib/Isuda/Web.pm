@@ -170,16 +170,27 @@ post '/keyword' => [qw/set_name authenticate/] => sub {
     $self->update_regexp;
     $self->redis->incr('total_entries');
 
-    {
-        my $entries = $self->dbh->select_all(qq[
-            SELECT * FROM entry
-            ORDER BY updated_at DESC
-            LIMIT 10
-        ]);
-        for my $entry (@$entries) {
-            $self->redis->set('htmlify|' . $entry->{id}, encode_utf8($self->htmlify($c, $entry->{description})));
-        }
+    my $uri_for = $c->req->uri_for;
+
+    my $pid = fork;
+    if ($pid <= 0) {
+        # 子プロセス
+        my $root_dir = $self->root_dir;
+        my $perl = $ENV{__ISUCON_PERL} // '/home/isucon/.local/perl/bin/perl';
+        system("$perl $root_dir/scripts/htmlify.pl $uri_for " . encode_utf8($keyword));
+        exit 0;
     }
+
+    # {
+    #     my $entries = $self->dbh->select_all(qq[
+    #         SELECT * FROM entry
+    #         ORDER BY updated_at DESC
+    #         LIMIT 10
+    #     ]);
+    #     for my $entry (@$entries) {
+    #         $self->redis->set('htmlify|' . $entry->{id}, encode_utf8($self->htmlify($c, $entry->{description})));
+    #     }
+    # }
 
     $c->redirect('/');
 };
