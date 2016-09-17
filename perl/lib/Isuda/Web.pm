@@ -44,6 +44,15 @@ sub dbh {
     });
 }
 
+sub update_regexp {
+    my ($self) = @_;
+
+    my $keywords = $self->dbh->select_all(qq[
+        SELECT keyword FROM entry ORDER BY keyword_length DESC
+    ]);
+    $self->{regexp} = join '|', map { quotemeta $_->{keyword} } @$keywords;
+}
+
 filter 'set_name' => sub {
     my $app = shift;
     sub {
@@ -141,6 +150,7 @@ post '/keyword' => [qw/set_name authenticate/] => sub {
         ON DUPLICATE KEY UPDATE
         author_id = ?, keyword = ?, description = ?, updated_at = NOW(), keyword_length = ?
     ], ($user_id, $keyword, $description, length($keyword)) x 2);
+    $self->update_regexp;
 
     $c->redirect('/');
 };
@@ -235,6 +245,7 @@ post '/keyword/:keyword' => [qw/set_name authenticate/] => sub {
         DELETE FROM entry
         WHERE keyword = ?
     ], $keyword);
+    $self->update_regexp;
     $c->redirect('/');
 };
 
