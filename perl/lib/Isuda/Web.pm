@@ -317,7 +317,7 @@ sub load_stars {
     my $stars = [];
     my @stars = @{$self->redis->lrange('star|' . encode_utf8($keyword), 0, -1)};
     for my $user (@stars) {
-        push (@$stars, {user_name => $user});
+        push (@$stars, {user_name => decode_utf8($user)});
     }
 
     return $stars;
