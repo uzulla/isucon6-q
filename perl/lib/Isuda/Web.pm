@@ -13,6 +13,7 @@ use Digest::SHA1 qw/sha1_hex/;
 use URI::Escape qw/uri_escape_utf8/;
 use Text::Xslate::Util qw/html_escape/;
 use List::Util qw/min max/;
+use Redis::Fast;
 
 sub config {
     state $conf = {
@@ -42,6 +43,14 @@ sub dbh {
             },
         },
     });
+}
+
+sub redis {
+    my ($self) = @_;
+    $self->{redis} //= Redis::Fast->new(
+        sock => '/tmp/redis.sock',
+        name => 'isucon',
+    );
 }
 
 sub update_regexp {
