@@ -15,11 +15,6 @@ use Digest::SHA1 qw/sha1_hex/;
 use URI::Escape qw/uri_escape_utf8/;
 use Text::Xslate::Util qw/html_escape/;
 
-
-my ($uri_base, @keywords) = @ARGV;
-
-my $keyword = decode_utf8(join ' ', @keywords);
-
 sub config {
     state $conf = {
         dsn           => $ENV{ISUDA_DSN}         // 'dbi:mysql:db=isuda',
@@ -53,28 +48,38 @@ my $redis = Redis::Fast->new(
 );
 
 
-# 正規表現つくりなおし
-my $keywords = $dbh->select_all(qq[
-   SELECT keyword FROM entry ORDER BY keyword_length DESC
-]);
-my $re = join '|', map { quotemeta $_->{keyword} } @$keywords;
+my $uri_base = $redis->get('uri_for');
+while (1) {
+    $uri_base //= $redis->get('uri_for');
+    my $keyword = $redis->lpop('queue');
+    if ($keyword) {
+        $keyword = decode_utf8($keyword);
+        # 正規表現つくりなおし
+        my $keywords = $dbh->select_all(qq[
+            SELECT keyword FROM entry ORDER BY keyword_length DESC
+        ]);
+        my $re = join '|', map { quotemeta $_->{keyword} } @$keywords;
 
-# entry全部みるぞ
-my $entries = $dbh->select_all(qq[
-    SELECT id, description FROM entry
-    ORDER BY updated_at DESC
-]);
-for my $entry (@$entries) {
-    # 含まれてるやつだけ更新
-    if ($entry->{description} =~ /$keyword/) {
-        $redis->set('htmlify|' . $entry->{id}, encode_utf8(htmlify($entry->{description})));
+        # entry全部みるぞ
+        my $entries = $dbh->select_all(qq[
+            SELECT id, description FROM entry
+            ORDER BY updated_at DESC
+        ]);
+        for my $entry (@$entries) {
+            # 含まれてるやつだけ更新
+            if ($entry->{description} =~ /$keyword/) {
+                warn $entry;
+                $redis->set('htmlify|' . $entry->{id}, encode_utf8(htmlify($entry->{description}, $re)));
+            }
+        }
+    } else {
+        warn 'sleep';
+        sleep 1;
     }
 }
 
-$redis->set('block', 'false');
-
 sub htmlify {
-    my ($content) = @_;
+    my ($content, $re) = @_;
     return '' unless defined $content;
 
     my %kw2sha;
