@@ -44,6 +44,22 @@ sub dbh {
     });
 }
 
+sub dbh_star {
+    my ($self) = @_;
+    return $self->{dbh_star} //= DBIx::Sunny->connect(
+        $ENV{ISUTAR_DSN} // 'dbi:mysql:db=isutar', $ENV{ISUTAR_DB_USER} // 'root', $ENV{ISUTAR_DB_PASSWORD} // '', {
+            Callbacks => {
+                connected => sub {
+                    my $dbh_star = shift;
+                    $dbh_star->do(q[SET SESSION sql_mode='TRADITIONAL,NO_AUTO_VALUE_ON_ZERO,ONLY_FULL_GROUP_BY']);
+                    $dbh_star->do('SET NAMES utf8mb4');
+                    return;
+                },
+            },
+        },
+    );
+}
+
 filter 'set_name' => sub {
     my $app = shift;
     sub {
@@ -77,7 +93,7 @@ get '/initialize' => sub {
     ]);
     my $origin = config('isutar_origin');
     my $url = URI->new("$origin/initialize");
-    Furl->new->get($url);
+    $self->dbh_star->query('TRUNCATE star');
     $c->render_json({
         result => 'ok',
     });
@@ -252,14 +268,12 @@ sub htmlify {
 
 sub load_stars {
     my ($self, $keyword) = @_;
-    my $origin = config('isutar_origin');
-    my $url = URI->new("$origin/stars");
-    $url->query_form(keyword => $keyword);
-    my $ua = Furl->new;
-    my $res = $ua->get($url);
-    my $data = decode_json $res->content;
 
-    $data->{stars};
+    my $stars = $self->dbh_star->select_all(q[
+        SELECT * FROM star WHERE keyword = ?
+    ], $keyword);
+
+    return $stars;
 }
 
 sub is_spam_contents {
