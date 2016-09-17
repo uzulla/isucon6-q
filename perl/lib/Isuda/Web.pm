@@ -75,10 +75,18 @@ get '/initialize' => sub {
     $self->dbh->query(q[
         DELETE FROM entry WHERE id > 7101
     ]);
+
+    my $keywords = $self->dbh->select_all(qq[
+        SELECT keyword FROM entry ORDER BY keyword_length DESC
+    ]);
+    $self->{regexp} = join '|', map { quotemeta $_->{keyword} } @$keywords;
+    print $self->{regexp} . "\n";
+
     # my $origin = config('isutar_origin');
     # my $url = URI->new("$origin/initialize");
     # Furl->new->get($url);
     $self->dbh->query('TRUNCATE star');
+
     $c->render_json({
         result => 'ok',
     });
@@ -271,11 +279,9 @@ post '/stars' => sub {
 sub htmlify {
     my ($self, $c, $content) = @_;
     return '' unless defined $content;
-    my $keywords = $self->dbh->select_all(qq[
-        SELECT keyword FROM entry ORDER BY keyword_length DESC
-    ]);
+
     my %kw2sha;
-    my $re = join '|', map { quotemeta $_->{keyword} } @$keywords;
+    my $re = $self->{regexp};
     $content =~ s{($re)}{
         my $kw = $1;
         $kw2sha{$kw} = "isuda_" . sha1_hex(encode_utf8($kw));
