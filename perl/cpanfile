@@ -11,3 +11,6 @@ requires 'Starlet';
 requires 'String::Random';
 requires 'URI::Escape';
 requires 'Redis::Fast';
+requires 'Sereal';
+requires 'Cache::Redis';
+requires 'Plack::Middleware::Session::Simple';
