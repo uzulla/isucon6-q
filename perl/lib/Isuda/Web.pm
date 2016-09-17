@@ -267,7 +267,7 @@ get '/stars' => sub {
     my ($self, $c) = @_;
 
     my $keyword = $c->req->parameters->{keyword};
-    my $stars = $self->redis->lrange(sha1_hex("star|$keyword"), 0, -1);
+    my $stars = $self->redis->lrange("star|" . sha1_hex(encode_utf8($keyword)), 0, -1);
 
     $c->render_json({
         stars => $stars,
@@ -285,7 +285,7 @@ post '/stars' => sub {
     ], $keyword);
     $c->halt(404) unless $entry;
 
-    $self->redis->lpush(sha1_hex("star|$keyword"), '1');
+    $self->redis->lpush("star|" . sha1_hex(encode_utf8($keyword)), '1');
 
     $c->render_json({
         result => 'ok',
