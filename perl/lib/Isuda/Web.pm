@@ -262,8 +262,13 @@ get '/stars' => sub {
         SELECT * FROM star WHERE keyword = ?
     ], $c->req->parameters->{keyword});
 
+    my @num;
+    for @$stars {
+        push(@num, 1);
+    }
+
     $c->render_json({
-        stars => $stars,
+        stars => \@num,
     });
 };
 
