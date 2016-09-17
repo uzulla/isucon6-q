@@ -99,9 +99,6 @@ get '/initialize' => sub {
     $self->update_regexp;
     print $self->redis->get('regexp') . "\n";
 
-    my $uri_for = $c->req->uri_for;
-    $self->redis->set('uri_for', $uri_for);
-
     # my $origin = config('isutar_origin');
     # my $url = URI->new("$origin/initialize");
     # Furl->new->get($url);
@@ -111,6 +108,17 @@ get '/initialize' => sub {
         SELECT COUNT(*) FROM entry
     ]);
     $self->redis->set('total_entries', $total_entries);
+
+    {
+        my $entries = $self->dbh->select_all(qq[
+            SELECT * FROM entry
+            ORDER BY updated_at DESC
+            LIMIT 10
+        ]);
+        for my $entry (@$entries) {
+            $self->redis->hset('htmlify', $entry->{id}, encode_utf8($self->htmlify($c, $entry->{description})));
+        }
+    }
 
     $c->render_json({
         result => 'ok',
@@ -130,7 +138,7 @@ get '/' => [qw/set_name/] => sub {
         OFFSET @{[ $PER_PAGE * ($page-1) ]}
     ]);
     foreach my $entry (@$entries) {
-        my $cached = $self->redis->get('htmlify|' . $entry->{id});
+        my $cached = $self->redis->hget('htmlify', $entry->{id});
         if ($cached) {
             $entry->{html} = decode_utf8($cached);
         } else {
@@ -179,8 +187,9 @@ post '/keyword' => [qw/set_name authenticate/] => sub {
             ORDER BY updated_at DESC
             LIMIT 10
         ]);
+        $self->redis->del('htmlify');
         for my $entry (@$entries) {
-            $self->redis->set('htmlify|' . $entry->{id}, encode_utf8($self->htmlify($c, $entry->{description})));
+            $self->redis->hset('htmlify', $entry->{id}, encode_utf8($self->htmlify($c, $entry->{description})));
         }
     }
 
@@ -258,14 +267,13 @@ get '/keyword/:keyword' => [qw/set_name/] => sub {
     ], $keyword);
     $c->halt(404) unless $entry;
 
-    my $cached = $self->redis->get('htmlify|' . $entry->{id});
+    my $cached = $self->redis->hget('htmlify', $entry->{id});
     if ($cached) {
         $entry->{html} = decode_utf8($cached);
     } else {
         $entry->{html} = $self->htmlify($c, $entry->{description});
     }
 
-    # $entry->{html} = $self->htmlify($c, $entry->{description});
     $entry->{stars} = $self->load_stars($entry->{keyword});
 
     $c->render('keyword.tx', { entry => $entry });
