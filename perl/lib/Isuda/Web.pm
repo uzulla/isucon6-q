@@ -267,7 +267,7 @@ get '/stars' => sub {
     my ($self, $c) = @_;
 
     my $keyword = $c->req->parameters->{keyword};
-    my $stars = $self->redis->lrange(encode_utf8("star|$keyword"), 0, -1);
+    my $stars = $self->redis->lrange("star|$keyword", 0, -1);
 
     $c->render_json({
         stars => $stars,
@@ -280,12 +280,12 @@ post '/stars' => sub {
 
     # TODO 存在確認してるだけなのでなんとかしたい
     my $entry = $self->dbh->select_row(qq[
-        SELECT id FROM entry
+        SELECT * FROM entry
         WHERE keyword = ?
     ], $keyword);
     $c->halt(404) unless $entry;
 
-    $self->redis->lpush(encode_utf8("star|$keyword"), '1');
+    $self->redis->lpush("star|$keyword", '1');
 
     $c->render_json({
         result => 'ok',
