@@ -127,7 +127,7 @@ get '/' => [qw/set_name/] => sub {
         OFFSET @{[ $PER_PAGE * ($page-1) ]}
     ]);
     foreach my $entry (@$entries) {
-        $entry->{html}  = $self->htmlify($c, $entry->{description});
+        $entry->{html}  = $self->redis->get('htmlify|' . $entry->{id}) || $self->htmlify($c, $entry->{description});
         $entry->{stars} = $self->load_stars($entry->{keyword});
     }
 
@@ -164,6 +164,17 @@ post '/keyword' => [qw/set_name authenticate/] => sub {
     ], ($user_id, $keyword, $description, length($keyword)) x 2);
     $self->update_regexp;
     $self->redis->incr('total_entries');
+
+    {
+        my $entries = $self->dbh->select_all(qq[
+            SELECT * FROM entry
+            ORDER BY updated_at DESC
+            LIMIT 10
+        ]);
+        for my $entry (@$entries) {
+            $self->redis->set('htmlify|' . $entry->{id}, $self->htmlify($c, $entry->{description}));
+        }
+    }
 
     $c->redirect('/');
 };
