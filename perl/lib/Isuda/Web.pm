@@ -127,7 +127,12 @@ get '/' => [qw/set_name/] => sub {
         OFFSET @{[ $PER_PAGE * ($page-1) ]}
     ]);
     foreach my $entry (@$entries) {
-        $entry->{html}  = $self->redis->get('htmlify|' . $entry->{id}) || $self->htmlify($c, $entry->{description});
+        my $cached = $self->redis->get('htmlify|' . $entry->{id});
+        if ($cached) {
+            $entry->{html} = decode_utf8($cached);
+        } else {
+            $entry->{html} = $self->htmlify($c, $entry->{description});
+        }
         $entry->{stars} = $self->load_stars($entry->{keyword});
     }
 
@@ -172,7 +177,7 @@ post '/keyword' => [qw/set_name authenticate/] => sub {
             LIMIT 10
         ]);
         for my $entry (@$entries) {
-            $self->redis->set('htmlify|' . $entry->{id}, $self->htmlify($c, $entry->{description}));
+            $self->redis->set('htmlify|' . $entry->{id}, encode_utf8($self->htmlify($c, $entry->{description})));
         }
     }
 
