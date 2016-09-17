@@ -4,7 +4,7 @@ use warnings;
 use utf8;
 use Kossy;
 use DBIx::Sunny;
-use Encode qw/encode_utf8/;
+use Encode qw/encode_utf8 decode_utf8/;
 use POSIX qw/ceil/;
 use Furl;
 use JSON::XS qw/decode_json/;
@@ -59,7 +59,7 @@ sub update_regexp {
     my $keywords = $self->dbh->select_all(qq[
         SELECT keyword FROM entry ORDER BY keyword_length DESC
     ]);
-    $self->redis->set('regexp', join '|', map { quotemeta $_->{keyword} } @$keywords);
+    $self->redis->set('regexp', encode_utf8(join '|', map { quotemeta $_->{keyword} } @$keywords));
 }
 
 filter 'set_name' => sub {
@@ -298,7 +298,7 @@ sub htmlify {
     return '' unless defined $content;
 
     my %kw2sha;
-    my $re = $self->redis->get('regexp');
+    my $re = decode_utf8($self->redis->get('regexp'));
     $content =~ s{($re)}{
         my $kw = $1;
         $kw2sha{$kw} = "isuda_" . sha1_hex(encode_utf8($kw));
