@@ -4,13 +4,17 @@ use strict;
 use warnings;
 use utf8;
 
-use Encode qw/encode_utf8 decode_utf8/;
-
 use FindBin;
 use File::Spec;
 use lib File::Spec->join($FindBin::Bin, '..', 'local', 'lib', 'perl5');
 use lib File::Spec->join($FindBin::Bin, '..', 'lib');
 use Isuda::Web;
+
+use Encode qw/encode_utf8 decode_utf8/;
+use Digest::SHA1 qw/sha1_hex/;
+use URI::Escape qw/uri_escape_utf8/;
+use Text::Xslate::Util qw/html_escape/;
+
 
 my ($uri_base, @keywords) = @ARGV;
 
