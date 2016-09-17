@@ -48,7 +48,8 @@ sub dbh {
 sub redis {
     my ($self) = @_;
     $self->{redis} //= Redis::Fast->new(
-        sock => '/tmp/redis.sock',
+        server => 'localhost:6379',
+        # sock => '/tmp/redis.sock',
         name => 'isucon',
     );
 }
@@ -279,17 +280,13 @@ post '/stars' => sub {
     my $keyword = $c->req->parameters->{keyword};
 
     my $entry = $self->dbh->select_row(qq[
-        SELECT * FROM entry
+        SELECT id FROM entry
         WHERE keyword = ?
     ], $keyword);
     $c->halt(404) unless $entry;
 
-    $self->dbh->query(q[
-        INSERT INTO star (keyword, user_name, created_at)
-        VALUES (?, ?, NOW())
-    ], $keyword, $c->req->parameters->{user});
-
-    $self->redis->lpush('star|' . encode_utf8($keyword), 1);
+    my $user = $c->req->parameters->{user};
+    $self->redis->lpush('star|' . encode_utf8($keyword), encode_utf8($user));
 
     $c->render_json({
         result => 'ok',
@@ -318,9 +315,11 @@ sub htmlify {
 sub load_stars {
     my ($self, $keyword) = @_;
 
-    my $stars = $self->dbh->select_all(q[
-        SELECT * FROM star WHERE keyword = ?
-    ], $keyword);
+    my $stars = [];
+    my @stars = @{$self->redis->lrange('star|' . encode_utf8($keyword), 0, -1)};
+    for my $user (@stars) {
+        push (@$stars, {user_name => $user});
+    }
 
     return $stars;
 }
