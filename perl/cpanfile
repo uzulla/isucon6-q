@@ -14,3 +14,4 @@ requires 'Redis::Fast';
 requires 'Sereal';
 requires 'Cache::Redis';
 requires 'Plack::Middleware::Session::Simple';
+requires 'Gazelle';
