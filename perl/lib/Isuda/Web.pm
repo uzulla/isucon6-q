@@ -254,6 +254,14 @@ get '/keyword/:keyword' => [qw/set_name/] => sub {
         WHERE keyword = ?
     ], $keyword);
     $c->halt(404) unless $entry;
+
+    my $cached = $self->redis->get('htmlify|' . $entry->{id});
+    if ($cached) {
+        $entry->{html} = decode_utf8($cached);
+    } else {
+        $entry->{html} = $self->htmlify($c, $entry->{description});
+    }
+
     $entry->{html} = $self->htmlify($c, $entry->{description});
     $entry->{stars} = $self->load_stars($entry->{keyword});
 
