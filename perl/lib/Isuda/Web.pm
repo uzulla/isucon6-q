@@ -100,7 +100,7 @@ get '/initialize' => sub {
     print $self->redis->get('regexp') . "\n";
 
     my $uri_for = $c->req->uri_for;
-    $self->redis->set('url_for', $uri_for);
+    $self->redis->set('uri_for', $uri_for);
 
     # my $origin = config('isutar_origin');
     # my $url = URI->new("$origin/initialize");
