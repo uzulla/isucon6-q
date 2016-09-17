@@ -99,6 +99,9 @@ get '/initialize' => sub {
     $self->update_regexp;
     print $self->redis->get('regexp') . "\n";
 
+    my $uri_for = $c->req->uri_for;
+    $self->redis->set('url_for', $uri_for);
+
     # my $origin = config('isutar_origin');
     # my $url = URI->new("$origin/initialize");
     # Furl->new->get($url);
@@ -170,17 +173,7 @@ post '/keyword' => [qw/set_name authenticate/] => sub {
     $self->update_regexp;
     $self->redis->incr('total_entries');
 
-    my $uri_for = $c->req->uri_for;
-
-    if ($self->redis->getset('block', 'true') ne 'true') {
-        my $pid = fork;
-        if ($pid <= 0) {
-            # 子プロセス
-            my $root_dir = $self->root_dir;
-            my $perl = $ENV{__ISUCON_PERL} // '/home/isucon/.local/perl/bin/perl';
-            exec("$perl $root_dir/scripts/htmlify.pl $uri_for " . encode_utf8($keyword));
-        }
-    }
+    $self->redis->rpush('queue', encode_utf8($keyword));
 
     # {
     #     my $entries = $self->dbh->select_all(qq[
