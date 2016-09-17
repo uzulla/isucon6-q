@@ -274,7 +274,7 @@ get '/keyword/:keyword' => [qw/set_name/] => sub {
         $entry->{html} = $self->htmlify($c, $entry->{description});
     }
 
-    $entry->{html} = $self->htmlify($c, $entry->{description});
+    # $entry->{html} = $self->htmlify($c, $entry->{description});
     $entry->{stars} = $self->load_stars($entry->{keyword});
 
     $c->render('keyword.tx', { entry => $entry });
