@@ -8,7 +8,7 @@ sudo sysctl -p
 sudo systemctl daemon-reload
 
 # mysql
-sudo /etc/init.d/mysqld restart
+sudo /etc/init.d/mysql restart
 
 # nginx
 sudo /etc/init.d/nginx restart
