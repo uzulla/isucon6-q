@@ -17,8 +17,8 @@ sudo /etc/init.d/nginx restart
 
 # app
 (cd /home/isucon/webapp/perl && /home/isucon/.local/perl/bin/carton install)
-sudo systemctl restart isuda.per
-sudo systemctl restart isutar.per
+sudo systemctl restart isuda.perl
+sudo systemctl restart isutar.perl
 
 # echo "Reloaded!" | /opt/slackcat --channel 80percent --stream --plain
 
