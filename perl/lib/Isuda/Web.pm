@@ -99,18 +99,23 @@ get '/initialize' => sub {
     $self->update_regexp;
     print $self->redis->get('regexp') . "\n";
 
-    my $uri_for = $c->req->uri_for;
-    $self->redis->set('uri_for', $uri_for);
-
-    # my $origin = config('isutar_origin');
-    # my $url = URI->new("$origin/initialize");
-    # Furl->new->get($url);
     $self->dbh->query('TRUNCATE star');
 
     my $total_entries = $self->dbh->select_one(q[
         SELECT COUNT(*) FROM entry
     ]);
     $self->redis->set('total_entries', $total_entries);
+
+    {
+        my $entries = $self->dbh->select_all(qq[
+            SELECT * FROM entry
+            ORDER BY updated_at DESC
+            LIMIT 100
+        ]);
+        for my $entry (@$entries) {
+            $self->redis->set('htmlify|' . $entry->{id}, encode_utf8($self->htmlify($c, $entry->{description})));
+        }
+    }
 
     $c->render_json({
         result => 'ok',
