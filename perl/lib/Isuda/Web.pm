@@ -175,16 +175,16 @@ post '/keyword' => [qw/set_name authenticate/] => sub {
 
     $self->redis->rpush('queue', encode_utf8($keyword));
 
-    # {
-    #     my $entries = $self->dbh->select_all(qq[
-    #         SELECT * FROM entry
-    #         ORDER BY updated_at DESC
-    #         LIMIT 10
-    #     ]);
-    #     for my $entry (@$entries) {
-    #         $self->redis->set('htmlify|' . $entry->{id}, encode_utf8($self->htmlify($c, $entry->{description})));
-    #     }
-    # }
+    {
+        my $entries = $self->dbh->select_all(qq[
+            SELECT * FROM entry
+            ORDER BY updated_at DESC
+            LIMIT 10
+        ]);
+        for my $entry (@$entries) {
+            $self->redis->set('htmlify|' . $entry->{id}, encode_utf8($self->htmlify($c, $entry->{description})));
+        }
+    }
 
     $c->redirect('/');
 };
