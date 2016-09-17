@@ -110,7 +110,7 @@ get '/initialize' => sub {
         my $entries = $self->dbh->select_all(qq[
             SELECT * FROM entry
             ORDER BY updated_at DESC
-            LIMIT 500
+            LIMIT 10
         ]);
         for my $entry (@$entries) {
             $self->redis->set('htmlify|' . $entry->{id}, encode_utf8($self->htmlify($c, $entry->{description})));
